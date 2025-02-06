@@ -10,6 +10,7 @@ This project aims to evaluate and compare various Go libraries that handle:
 
 ## TL;DR
 ```
+unzip data/BTCUSDT-trades-2025-01-30.zip -d data/
 go run cmd/benchmark/main.go -data data/BTCUSDT-trades-2025-01-30.csv
 Loaded 3990075 trades
 Time range: from 2025-01-30 03:00:00.232125 +0300 MSK to 2025-01-31 02:59:59.778505 +0300 MSK

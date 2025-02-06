@@ -30,6 +30,7 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-/data/
-/benchmarks/results/
+data/
+benchmarks_results/
+benchmark_results/
 analysis.md
