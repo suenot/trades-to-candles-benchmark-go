@@ -3,7 +3,9 @@ package utils
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 
 	"github.com/yourusername/trades-to-candles-benchmark-go/internal/models"
 )
@@ -29,7 +31,11 @@ func (p *TradeParser) ParseTrade() (*models.Trade, error) {
 
 	var trade models.Trade
 	if err := json.Unmarshal([]byte(line), &trade); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	if err := trade.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid trade data: %w", err)
 	}
 
 	return &trade, nil
@@ -37,7 +43,7 @@ func (p *TradeParser) ParseTrade() (*models.Trade, error) {
 
 // ParseAll reads all trades from the input
 func (p *TradeParser) ParseAll() (chan *models.Trade, error) {
-	trades := make(chan *models.Trade, 1000) // Buffer size can be adjusted
+	trades := make(chan *models.Trade, 1000)
 
 	go func() {
 		defer close(trades)
@@ -48,7 +54,7 @@ func (p *TradeParser) ParseAll() (chan *models.Trade, error) {
 				break
 			}
 			if err != nil {
-				// Log error but continue processing
+				log.Printf("Error parsing trade: %v", err)
 				continue
 			}
 			trades <- trade
