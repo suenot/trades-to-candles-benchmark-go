@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/MathisWellmann/go_trade_aggregation/aggregator"
-	"github.com/yourusername/trades-to-candles-benchmark-go/internal/models"
+	"github.com/suenot/trades-to-candles-benchmark-go/internal/models"
 )
 
 // Adapter implements TradeAggregator interface for go_trade_aggregation library

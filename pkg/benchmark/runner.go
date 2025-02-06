@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/yourusername/trades-to-candles-benchmark-go/internal/interfaces"
-	"github.com/yourusername/trades-to-candles-benchmark-go/internal/models"
+	"github.com/suenot/trades-to-candles-benchmark-go/internal/interfaces"
+	"github.com/suenot/trades-to-candles-benchmark-go/internal/models"
 )
 
 // Config holds benchmark configuration

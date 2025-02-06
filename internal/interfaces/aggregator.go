@@ -1,6 +1,6 @@
 package interfaces
 
-import "github.com/yourusername/trades-to-candles-benchmark-go/internal/models"
+import "github.com/suenot/trades-to-candles-benchmark-go/internal/models"
 
 // TradeAggregator defines interface for trade to candle conversion
 type TradeAggregator interface {
