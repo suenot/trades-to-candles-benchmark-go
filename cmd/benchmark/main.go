@@ -1,81 +1,164 @@
 package main
 
 import (
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"time"
 
-	"github.com/suenot/trades-to-candles-benchmark-go/internal/adapters/go_trade_aggregation"
+	"github.com/suenot/trades-to-candles-benchmark-go/internal/aggregator"
 	"github.com/suenot/trades-to-candles-benchmark-go/internal/models"
-	"github.com/suenot/trades-to-candles-benchmark-go/internal/utils"
 	"github.com/suenot/trades-to-candles-benchmark-go/pkg/benchmark"
 )
 
 func main() {
 	// Parse command line flags
-	dataFile := flag.String("data", "", "Path to trades data file")
-	timeframe := flag.Duration("timeframe", time.Minute, "Candle timeframe")
-	batchSize := flag.Int("batch", 1000, "Batch size for processing")
-	outputDir := flag.String("output", "benchmarks/results", "Output directory for results")
+	dataPath := flag.String("data", "", "Path to CSV file with trade data")
 	flag.Parse()
 
-	if *dataFile == "" {
-		log.Fatal("Please provide path to data file using -data flag")
+	if *dataPath == "" {
+		log.Fatal("Data path is required")
 	}
 
-	// Initialize ZIP reader
-	zipReader, err := utils.NewZipReader(*dataFile)
+	// Open CSV file
+	file, err := os.Open(*dataPath)
 	if err != nil {
-		log.Fatalf("Failed to open ZIP file: %v", err)
+		log.Fatalf("Failed to open CSV file: %v", err)
 	}
-	defer zipReader.Close()
+	defer file.Close()
 
-	// Get trades data
-	tradesFile, err := zipReader.GetFirstFile()
-	if err != nil {
-		log.Fatalf("Failed to get trades file: %v", err)
+	// Create CSV reader
+	reader := csv.NewReader(file)
+
+	// Read all trades
+	trades := make([]*models.Trade, 0)
+	var firstTimestamp, lastTimestamp time.Time
+
+	for {
+		record, err := reader.Read()
+		if err != nil {
+			break // End of file
+		}
+
+		// Parse CSV record
+		// Format: id,price,amount,quoteAmount,timestamp,isBuyer,isMaker
+		if len(record) != 7 {
+			log.Printf("Invalid record format: %v", record)
+			continue
+		}
+
+		price, err := strconv.ParseFloat(record[1], 64)
+		if err != nil {
+			log.Printf("Failed to parse price: %v", err)
+			continue
+		}
+
+		amount, err := strconv.ParseFloat(record[2], 64)
+		if err != nil {
+			log.Printf("Failed to parse amount: %v", err)
+			continue
+		}
+
+		timestamp, err := strconv.ParseInt(record[4], 10, 64)
+		if err != nil {
+			log.Printf("Failed to parse timestamp: %v", err)
+			continue
+		}
+
+		isBuyer, err := strconv.ParseBool(record[5])
+		if err != nil {
+			log.Printf("Failed to parse isBuyer: %v", err)
+			continue
+		}
+
+		tradeTime := time.UnixMicro(timestamp)
+		trade := &models.Trade{
+			Timestamp: tradeTime,
+			Price:     price,
+			Amount:    amount,
+			IsBuyer:   isBuyer,
+		}
+
+		if err := trade.Validate(); err != nil {
+			log.Printf("Invalid trade: %v", err)
+			continue
+		}
+
+		trades = append(trades, trade)
+
+		// Update first and last timestamp
+		if firstTimestamp.IsZero() || tradeTime.Before(firstTimestamp) {
+			firstTimestamp = tradeTime
+		}
+		if tradeTime.After(lastTimestamp) {
+			lastTimestamp = tradeTime
+		}
 	}
-	defer tradesFile.Close()
 
-	// Create trade parser
-	parser := utils.NewTradeParser(tradesFile)
-	trades, err := parser.ParseAll()
-	if err != nil {
-		log.Fatalf("Failed to parse trades: %v", err)
-	}
+	fmt.Printf("Loaded %d trades\n", len(trades))
+	fmt.Printf("Time range: from %v to %v\n", firstTimestamp, lastTimestamp)
+	fmt.Printf("Total duration: %v\n", lastTimestamp.Sub(firstTimestamp))
 
-	// Collect all trades from channel
-	var allTrades []*models.Trade
-	for trade := range trades {
-		allTrades = append(allTrades, trade)
-	}
+	// Run benchmark with our MinuteAggregator
+	results := make([]*benchmark.BenchmarkResult, 0)
 
-	fmt.Printf("Loaded %d trades from file\n", len(allTrades))
+	// Create and test MinuteAggregator
+	minuteAggregator := aggregator.NewMinuteAggregator()
 
-	// Create go_trade_aggregation adapter
-	adapter, err := go_trade_aggregation.NewAdapter(*timeframe)
-	if err != nil {
-		log.Fatalf("Failed to create adapter: %v", err)
-	}
-
-	// Create and run benchmark
 	config := benchmark.Config{
-		LibraryName: "go_trade_aggregation",
-		Timeframe:   *timeframe,
-		BatchSize:   *batchSize,
+		LibraryName: "minute_aggregator",
+		Timeframe:   time.Minute,
+		BatchSize:   1000,
 	}
 
-	bench := benchmark.NewTradesBenchmark(config, allTrades, adapter)
+	bench := benchmark.NewTradesBenchmark(config, trades, minuteAggregator)
 	result, err := bench.Run()
 	if err != nil {
-		log.Fatalf("Benchmark failed: %v", err)
+		log.Printf("Benchmark failed for minute_aggregator: %v", err)
+	} else {
+		results = append(results, result)
+
+		// Get candles and analyze them
+		candles, err := minuteAggregator.GetCandles()
+		if err != nil {
+			log.Printf("Failed to get candles: %v", err)
+		} else {
+			fmt.Printf("\nCandle Analysis:\n")
+			fmt.Printf("Number of candles: %d\n", len(candles))
+			if len(candles) > 0 {
+				fmt.Printf("First candle: %v\n", candles[0])
+				fmt.Printf("Last candle: %v\n", candles[len(candles)-1])
+
+				// Check for gaps in candles
+				expectedCandles := int(lastTimestamp.Sub(firstTimestamp).Minutes())
+				if len(candles) != expectedCandles {
+					fmt.Printf("Warning: Expected %d candles, but got %d\n", expectedCandles, len(candles))
+				}
+
+				// Print first 5 and last 5 candles
+				fmt.Printf("\nFirst 5 candles:\n")
+				for i := 0; i < 5 && i < len(candles); i++ {
+					fmt.Printf("%v\n", candles[i])
+				}
+
+				fmt.Printf("\nLast 5 candles:\n")
+				for i := len(candles) - 5; i < len(candles); i++ {
+					if i >= 0 {
+						fmt.Printf("%v\n", candles[i])
+					}
+				}
+			}
+		}
 	}
 
-	// Save and display results
-	if err := benchmark.SaveResults([]*benchmark.BenchmarkResult{result}, *outputDir); err != nil {
-		log.Printf("Warning: Failed to save results: %v", err)
-	}
+	// Print results
+	benchmark.CompareResults(results)
 
-	benchmark.CompareResults([]*benchmark.BenchmarkResult{result})
+	// Save results
+	if err := benchmark.SaveResults(results, "benchmark_results"); err != nil {
+		log.Printf("Failed to save results: %v", err)
+	}
 }

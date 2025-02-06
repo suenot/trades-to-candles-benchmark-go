@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/yourusername/trades-to-candles-benchmark-go/internal/models"
+	"github.com/suenot/trades-to-candles-benchmark-go/internal/models"
 )
 
 // TradeParser handles parsing of trade data from various formats

@@ -43,7 +43,6 @@ func CompareResults(results []*BenchmarkResult) {
 	for _, r := range results {
 		fmt.Printf("\nLibrary: %s\n", r.LibraryName)
 		fmt.Printf("Execution Time: %v\n", r.ExecutionTime)
-		fmt.Printf("Memory Usage: %v MB\n", r.MemoryUsage/1024/1024)
 		fmt.Printf("Max Memory Usage: %v MB\n", r.MaxMemoryUsage/1024/1024)
 		fmt.Printf("Processed Trades: %d\n", r.ProcessedTrades)
 		fmt.Printf("Candles Created: %d\n", r.CandlesCreated)

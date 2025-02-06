@@ -20,11 +20,10 @@ type Config struct {
 type BenchmarkResult struct {
 	LibraryName     string
 	ExecutionTime   time.Duration
-	MemoryUsage     uint64
 	ProcessedTrades int64
 	Error           error
 	// Additional metrics
-	MaxMemoryUsage uint64
+	MaxMemoryUsage int64
 	CPUUsage       float64
 	CandlesCreated int
 }
@@ -54,7 +53,7 @@ func (b *TradesBenchmark) Run() (*BenchmarkResult, error) {
 	// Get initial memory stats
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	initialMem := memStats.Alloc
+	initialMem := int64(memStats.Alloc)
 
 	startTime := time.Now()
 
@@ -74,9 +73,10 @@ func (b *TradesBenchmark) Run() (*BenchmarkResult, error) {
 
 		// Update memory stats
 		runtime.ReadMemStats(&memStats)
-		currentMem := memStats.Alloc
-		if currentMem-initialMem > result.MaxMemoryUsage {
-			result.MaxMemoryUsage = currentMem - initialMem
+		currentMem := int64(memStats.Alloc)
+		memDiff := currentMem - initialMem
+		if memDiff > result.MaxMemoryUsage {
+			result.MaxMemoryUsage = memDiff
 		}
 	}
 
@@ -90,10 +90,6 @@ func (b *TradesBenchmark) Run() (*BenchmarkResult, error) {
 	result.ExecutionTime = time.Since(startTime)
 	result.ProcessedTrades = int64(len(b.trades))
 	result.CandlesCreated = len(candles)
-
-	// Get final memory stats
-	runtime.ReadMemStats(&memStats)
-	result.MemoryUsage = memStats.Alloc - initialMem
 
 	return result, nil
 }

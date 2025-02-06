@@ -1,0 +1,12 @@
+[
+  {
+    "LibraryName": "minute_aggregator",
+    "ExecutionTime": 408866291,
+    "MemoryUsage": 18446744073670109048,
+    "ProcessedTrades": 3990075,
+    "Error": null,
+    "MaxMemoryUsage": 18446744073690708864,
+    "CPUUsage": 0,
+    "CandlesCreated": 1440
+  }
+]

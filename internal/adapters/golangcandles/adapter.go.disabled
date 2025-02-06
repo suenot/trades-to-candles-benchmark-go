@@ -1,17 +1,19 @@
-package go_trade_aggregation
+// This adapter is temporarily disabled due to compatibility issues
+// TODO: Fix golangcandles adapter implementation
+package golangcandles
 
 import (
 	"fmt"
 	"time"
 
-	gta "github.com/MathisWellmann/go_trade_aggregation"
+	"github.com/complimenti/golangcandles"
 	"github.com/suenot/trades-to-candles-benchmark-go/internal/models"
 )
 
-// Adapter implements TradeAggregator interface for go_trade_aggregation library
+// Adapter implements TradeAggregator interface for golangcandles library
 type Adapter struct {
 	timeframe time.Duration
-	trades    []*gta.Trade
+	candles   *golangcandles.CandleSet
 }
 
 // NewAdapter creates a new adapter instance
@@ -22,7 +24,7 @@ func NewAdapter(timeframe time.Duration) (*Adapter, error) {
 
 	return &Adapter{
 		timeframe: timeframe,
-		trades:    make([]*gta.Trade, 0),
+		candles:   golangcandles.NewCandleSet(),
 	}, nil
 }
 
@@ -32,34 +34,24 @@ func (a *Adapter) AddTrade(trade *models.Trade) error {
 		return fmt.Errorf("invalid trade: %w", err)
 	}
 
-	// Convert our trade model to library's trade model
-	libTrade := &gta.Trade{
-		Timestamp: trade.Timestamp.UnixMilli(), // Convert to milliseconds
-		Price:     trade.Price,
-		Size:      trade.Amount * (map[bool]float64{true: 1, false: -1})[trade.IsBuyer], // Negative if sell
-	}
+	// Convert our trade to library's format
+	a.candles.AddTrade(golangcandles.Trade{
+		Time:   trade.Timestamp,
+		Price:  trade.Price,
+		Volume: trade.Amount,
+	}, a.timeframe)
 
-	a.trades = append(a.trades, libTrade)
 	return nil
 }
 
 // GetCandles returns the current candles
 func (a *Adapter) GetCandles() ([]*models.Candle, error) {
-	if len(a.trades) == 0 {
-		return []*models.Candle{}, nil
-	}
-
-	// Convert timeframe to milliseconds
-	timeframeMillis := int64(a.timeframe.Milliseconds())
-
-	// Get candles from the library
-	libCandles := gta.AggTime(a.trades, timeframeMillis)
-
-	// Convert library candles to our model
+	libCandles := a.candles.GetCandles()
 	candles := make([]*models.Candle, len(libCandles))
+
 	for i, lc := range libCandles {
 		candle := &models.Candle{
-			Timestamp: time.UnixMilli(lc.Timestamp),
+			Timestamp: lc.Time,
 			Open:      lc.Open,
 			High:      lc.High,
 			Low:       lc.Low,

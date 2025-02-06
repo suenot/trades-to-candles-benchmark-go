@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/trades-to-candles-benchmark-go/internal/models"
+	"github.com/suenot/trades-to-candles-benchmark-go/internal/models"
 )
 
 type mockAggregator struct {

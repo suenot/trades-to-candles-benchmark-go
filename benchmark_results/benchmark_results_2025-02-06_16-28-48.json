@@ -1,0 +1,12 @@
+[
+  {
+    "LibraryName": "go_trade_aggregation",
+    "ExecutionTime": 584261375,
+    "MemoryUsage": 51981232,
+    "ProcessedTrades": 3990075,
+    "Error": null,
+    "MaxMemoryUsage": 18446744073709542216,
+    "CPUUsage": 0,
+    "CandlesCreated": 1
+  }
+]
