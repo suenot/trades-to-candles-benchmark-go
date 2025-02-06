@@ -48,3 +48,36 @@ This project aims to evaluate and compare various Go libraries that handle:
 - Result accuracy
 
 ## Project Structure 
+
+## Current Status
+- [x] Basic infrastructure setup
+- [x] Initial library integration
+- [x] Benchmark implementation
+- [x] First benchmark results
+
+## Benchmark Results
+
+### go_trade_aggregation
+First benchmark results:
+- Test Environment:
+  * Hardware: Apple MacBook Air M1 (2020)
+  * RAM: 16GB
+  * OS: macOS
+- Dataset:
+  * Symbol: BTCUSDT
+  * Size: 1.2M trades
+  * Period: 24 hours
+- Characteristics:
+  * Stable performance on large datasets
+  * Efficient memory usage
+  * Clean API integration
+
+### Other Libraries
+Benchmarks for other libraries are in progress:
+- [ ] golangcandles
+- [ ] techan
+- [ ] marketstore
+- [ ] cinar/indicator
+- [ ] go-trader
+- [ ] go-exchanges
+- [ ] ta
