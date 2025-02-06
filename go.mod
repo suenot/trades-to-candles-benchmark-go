@@ -1,4 +1,3 @@
-module github.com/yourusername/trades-to-candles-benchmark-go
 module github.com/suenot/trades-to-candles-benchmark-go
 
 go 1.21
